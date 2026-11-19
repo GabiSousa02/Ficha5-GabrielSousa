@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Card from "./Card.jsx";
 
@@ -12,8 +13,8 @@ function App() {
   const [name, setName] = useState("");
   const [type, setType] = useState("Criatura");
   const [attack, setAttack] = useState("");
+  const [formError, setFormError] = useState("");
 
-  // Buscar cartas ao servidor e filtrar por tipo
   useEffect(() => {
     setLoading(true);
     setError("");
@@ -42,42 +43,46 @@ function App() {
       });
   }, [filter]);
 
- async function handleSubmit(e) {
-  e.preventDefault();
+  // Adicionar nova carta
+  async function handleSubmit(e) {
+    e.preventDefault();
 
-  const newCard = {
-    name,
-    type,
-    attack: Number(attack),
-  };
+    setFormError("");
 
-  try {
-    const response = await fetch("http://localhost:3000/api/cartas", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newCard),
-    });
+    const newCard = {
+      name,
+      type,
+      attack: Number(attack),
+    };
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    try {
+      const response = await fetch("http://localhost:3000/api/cartas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newCard),
+      });
+
+      if (!response.ok) {
+        setFormError(`HTTP ${response.status}`);
+        return;
+      }
+
+      const card = await response.json();
+
+      setCards([...cards, card]);
+
+      setName("");
+      setType("Criatura");
+      setAttack("");
+
+    } catch (err) {
+      setFormError("Não foi possível contactar o servidor.");
     }
-
-    const card = await response.json();
-
-    setCards([...cards, card]);
-
-    setName("");
-    setType("Criatura");
-    setAttack("");
-
-  } catch (err) {
-    setError(err.message);
   }
-}
 
-  // EXTRA 1 - Escolher carta aleatória através da API
+  // Escolher carta aleatória
   function pickRandom() {
     fetch("http://localhost:3000/api/cartas/aleatoria")
       .then((res) => {
@@ -95,12 +100,25 @@ function App() {
       });
   }
 
+  // Filtrar e ordenar cartas
+  let visible = cards.filter((card) => {
+    const matchesSearch = card.name
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
+    return matchesSearch;
+  });
+
+  if (sorted) {
+    visible = [...visible].sort((a, b) => b.attack - a.attack);
+  }
+
   // Estado de carregamento
   if (loading) {
     return <h2>A carregar...</h2>;
   }
 
-  // Estado de erro
+  // Erro ao carregar cartas
   if (error) {
     return <h2>Erro ao carregar cartas: {error}</h2>;
   }
@@ -108,12 +126,13 @@ function App() {
   return (
     <main>
       <h1>A minha coleção</h1>
+
       <h2>Adicionar nova carta</h2>
 
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placehnolder="Nome da carta"
+          placeholder="Nome da carta"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -135,6 +154,13 @@ function App() {
 
         <button type="submit">Adicionar carta</button>
       </form>
+
+      {formError && (
+        <p style={{ color: "red" }}>
+          {formError}
+        </p>
+      )}
+
       <p>
         Tenho {cards.length} cartas · a mostrar {visible.length}
       </p>
@@ -169,7 +195,7 @@ function App() {
       ) : (
         <ul>
           {visible.map((card) => (
-            <Card key={card.name} {...card} />
+            <Card key={card.id} {...card} />
           ))}
         </ul>
       )}

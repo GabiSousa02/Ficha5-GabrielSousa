@@ -83,11 +83,21 @@ app.get("/cartas", (req, res) => {
 
   res.send(page("Cartas", `<ul>${items}</ul>`));
 });
-// Adicionar uma carta
+
 app.post("/api/cartas", (req, res) => {
+  const { name, type, attack } = req.body;
+
+  if (!name || !name.trim() || !type) {
+    return res.status(400).json({
+      error: "O nome e o tipo são obrigatórios."
+    });
+  }
+
   const card = {
     id: Date.now(),
-    ...req.body
+    name: name.trim(),
+    type,
+    attack: Number(attack)
   };
 
   cards.push(card);
