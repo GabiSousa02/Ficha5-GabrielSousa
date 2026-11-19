@@ -42,32 +42,40 @@ function App() {
       });
   }, [filter]);
 
-  function handleSubmit(e) {
-    e.preventDefault();
+ async function handleSubmit(e) {
+  e.preventDefault();
 
-    const card = {
-      name,
-      type,
-      attack: Number(attack),
-    };
+  const newCard = {
+    name,
+    type,
+    attack: Number(attack),
+  };
+
+  try {
+    const response = await fetch("http://localhost:3000/api/cartas", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newCard),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const card = await response.json();
 
     setCards([...cards, card]);
 
     setName("");
     setType("Criatura");
     setAttack("");
-  }
-  // Pesquisa pelo nome
-  let visible = cards.filter((card) =>
-    card.name.toLowerCase().includes(search.toLowerCase())
-  );
 
-  // Ordenar por ataque
-  if (sorted) {
-    visible = [...visible].sort(
-      (a, b) => b.attack - a.attack
-    );
+  } catch (err) {
+    setError(err.message);
   }
+}
 
   // EXTRA 1 - Escolher carta aleatória através da API
   function pickRandom() {
